@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+	<head>
+		<title>ticker machine</title>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+		<script src="/json2.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			$(function() {
+				var socket = new io.Socket(),
+					ticker = $('#ticker'),
+					arrival = $('#arrival'),
+					lastTickOn,
+					lastTick;
+
+				$('#change-rate').submit(function(e) {
+					e.preventDefault();
+
+					var newRate = parseInt($('#new-rate').val(),10);
+
+					socket.send(JSON.stringify({
+						command: 'change-rate',
+						data: newRate
+					}));
+				});
+
+				socket.on('connect', function() {
+					var transport = socket.transport;
+					$('#method').text("Connected using " + transport.type);
+				});
+
+				socket.on('message', function(txt) {
+					var msg = JSON.parse(txt);
+
+					switch (msg.command) {
+						case "tick":
+							var tick = msg.data,
+								now = new Date().getTime();
+							
+							ticker.text(tick);
+
+							if (lastTickOn) {
+								var span = now - lastTickOn;
+								arrival.text("There was a " + span + "ms interval between ticks");
+							}
+
+							if (lastTick) {
+								ticker.removeClass('up down');
+								if (tick > lastTick) {
+									ticker.addClass('up');
+								} 
+								else if (tick < lastTick) {
+									ticker.addClass('down');
+								}
+							}
+
+							lastTick = tick;
+							lastTickOn = now;
+							break;
+						case "counter":
+							$('#clients').text("There are " + msg.data + " client(s) connected");
+							break;
+
+						default:
+							console.log(msg.command);
+					}
+				});
+
+				socket.connect();
+			});
+		</script>
+		<style>
+			body { 
+				text-align: center; 
+				font-family: Courier, "Courier New", monospace;  
+			}
+			#change-rate {
+				margin: 1em;
+			}
+			#ticker { font-size: 128px; }
+			#ticker.up { color: green; }
+			#ticker.down { color: red; }
+		</style>
+	</head>
+	<body>
+		<div id="ticker"></div>
+		<div id="arrival"></div>
+		<div id="method"></div>
+		<div id="clients"></div>
+		<div>
+			<form id="change-rate">
+				<input id="new-rate" type="number" placeholder="rate" value="200" />
+				<input type="submit" value="change rate" />
+			</form>
+		</div>
+	</body>
+</html>
