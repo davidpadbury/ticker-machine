@@ -1,0 +1,7 @@
+{
+	"name": "ticker-machine",
+	"version": "1.0.0",
+	"description": "super simple ticking websockets tester",
+	"author": "David Padbury <david@davidpadbury.com>",
+	"dependencies": { "connect": ">=0.5.10", "socket.io": ">=0.6.16" }
+}
