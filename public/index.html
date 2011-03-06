@@ -11,8 +11,63 @@
 				var socket = new io.Socket(),
 					ticker = $('#ticker'),
 					arrival = $('#arrival'),
+					$max = $('#max'),
+					$min = $('#min'),
+					$avg = $('#avg'),
+					$stddev = $('#std-dev'),
+					$samples = $('#samples'),
+					ticksSampleMax = 10,
+					ticksSampleCount = 0,
+					currentTick = 0,
+					previousTicks = [],
 					lastTickOn,
 					lastTick;
+
+				function updateStats(newTick) {
+					var max, min, avg = 0, stddev = 0, value,
+						i;
+
+					previousTicks[currentTick] = newTick;
+
+					if (ticksSampleCount < ticksSampleMax) {
+						ticksSampleCount++;
+					}
+
+					// Calculate stats
+					for (i = 0; i < ticksSampleCount; i++) {
+						value = previousTicks[i];
+						max = typeof max !== 'undefined' ? Math.max(value, max) : value;
+						min = typeof min !== 'undefined' ? Math.min(value, min) : value;
+						avg += value;
+					}
+
+					avg /= ticksSampleCount;
+
+					// Now we have average, calculate stddev
+					for (i = 0; i < ticksSampleCount; i++) {
+						value = previousTicks[i];
+						stddev += Math.pow(value - avg, 2);
+					}
+
+					stddev /= ticksSampleCount;
+					stddev = Math.sqrt(stddev);
+
+					// Round to two decimal places
+					avg = Math.round(avg * 100) / 100;
+					stddev = Math.round(stddev * 100) / 100;
+
+					// Update display
+					$max.text('Max: ' + max + 'ms');
+					$min.text('Min: ' + min + 'ms');
+					$avg.text('Avg: ' + avg + 'ms');
+					$stddev.text('Std Dev: ' + stddev + 'ms');
+
+					// Update samples
+					$samples.text('(from the last ' + ticksSampleCount + ' ticks)');
+
+					// Circulate next tick position
+					currentTick = currentTick < ticksSampleMax - 1 ? currentTick + 1 : 0;
+				}
 
 				$('#change-rate').submit(function(e) {
 					e.preventDefault();
@@ -43,7 +98,9 @@
 							if (lastTickOn) {
 								var span = now - lastTickOn;
 								arrival.text("There was a " + span + "ms interval between ticks");
+								updateStats(span);
 							}
+
 
 							if (lastTick) {
 								ticker.removeClass('up down');
@@ -87,6 +144,13 @@
 		<div id="ticker"></div>
 		<div id="arrival"></div>
 		<div id="method"></div>
+		<div id="stats">
+			<span id="max" class="stat"></span>
+			<span id="min" class="stat"></span>
+			<span id="avg" class="stat"></span>
+			<span id="std-dev" class="stat"></span>
+			<span id="samples" class="stat"></span>
+		</div>
 		<div id="clients"></div>
 		<div>
 			<form id="change-rate">
